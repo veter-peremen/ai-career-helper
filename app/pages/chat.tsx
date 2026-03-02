@@ -6,14 +6,16 @@ import {
   useNavigation,
   useSearchParams,
 } from "react-router"
-
+import {
+  Search, Bell, Bot, Paperclip, Mic, Send, MessageSquarePlus
+} from 'lucide-react'
 import type { Route } from "./+types/chat"
 import { createChat, getChatById, getChats } from "~/modules/chat/api/chats"
 import type { ChatWithMessages } from "~/modules/chat/model/types"
 import { Button } from "~/shared/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/shared/components/ui/card"
 import { Input } from "~/shared/components/ui/input"
 import { Skeleton } from "~/shared/components/ui/skeleton"
+import { AppLayout } from "~/shared/components/layout/app-layout"
 
 const CHATS_LIMIT = 50
 const MESSAGES_LIMIT = 50
@@ -44,20 +46,14 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
     selectedChat = chatData.items[0] ?? null
   }
 
-  return {
-    chats,
-    selectedChat,
-    selectedChatId: chatId,
-  }
+  return { chats, selectedChat, selectedChatId: chatId }
 }
 
 export async function clientAction({ request }: Route.ActionArgs) {
   const formData = await request.formData()
   const title = String(formData.get("title") ?? "").trim()
 
-  if (!title) {
-    return { error: "Введите название чата" }
-  }
+  if (!title) return { error: "Введите название чата" }
 
   const chat = await createChat(title)
   return { chat }
@@ -82,101 +78,129 @@ export default function Chat() {
   }, [chats, selectedChatId])
 
   return (
-    <div className="grid min-h-[calc(100vh-180px)] gap-6 lg:grid-cols-[320px_1fr]">
-      <div className="flex flex-col gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Ваши чаты</CardTitle>
-            <CardDescription>Выберите диалог или создайте новый.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <fetcher.Form method="post" className="flex gap-2">
-              <Input name="title" placeholder="Новый чат" autoComplete="off" />
-              <Button type="submit" disabled={fetcher.state === "submitting"}>
-                Создать
-              </Button>
-            </fetcher.Form>
-            {fetcher.data?.error && (
-              <p className="text-sm text-destructive">{fetcher.data.error}</p>
-            )}
-            <div className="space-y-2">
-              {chats.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Чатов пока нет.</p>
-              ) : (
-                chats.map((chat) => {
-                  const isActive = chat.id === selectedChatId
-                  return (
-                    <Link
-                      key={chat.id}
-                      to={`?chatId=${chat.id}`}
-                      className={[
-                        "flex flex-col gap-1 rounded-lg border px-3 py-2 text-sm transition",
-                        isActive
-                          ? "border-primary/40 bg-primary/10 text-primary"
-                          : "hover:bg-muted/60",
-                      ].join(" ")}
-                    >
-                      <span className="font-medium text-foreground">{chat.title}</span>
-                      <span className="text-xs text-muted-foreground">
-                        Последняя активность: {new Date(chat.lastActivityTime).toLocaleString("ru-RU")}
-                      </span>
-                    </Link>
-                  )
-                })
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="flex min-h-[520px] flex-col lg:min-h-full">
-        <CardHeader>
-          <CardTitle>{selectedTitle}</CardTitle>
-          <CardDescription>
-            {selectedChat ? "История сообщений чата." : "Выберите чат в списке слева."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-1 flex-col gap-4">
-          {isLoading ? (
-            <div className="flex flex-1 flex-col gap-3 rounded-lg border bg-muted/20 p-4">
-              <Skeleton className="h-10 w-2/3" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-5/6" />
-              <Skeleton className="h-16 w-4/6" />
-            </div>
-          ) : selectedChat ? (
-            <div className="flex flex-1 flex-col gap-3 overflow-y-auto rounded-lg border bg-muted/20 p-4">
-              {selectedChat.messages.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Сообщений пока нет.</p>
-              ) : (
-                selectedChat.messages.map((message) => (
-                  <div key={message.id} className="rounded-lg border bg-background p-3 text-sm">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      {message.senderTypeId}
-                    </p>
-                    <p>{message.text}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-              Пока не выбран чат.
-            </div>
+    <AppLayout>
+      <div className="grid min-h-[calc(100vh-140px)] gap-6 lg:grid-cols-[320px_1fr]">
+        
+        {/* Левая панель: Список чатов */}
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm flex flex-col h-full p-4">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">
+            Ваши диалоги
+          </h3>
+          
+          <fetcher.Form method="post" className="flex gap-2 mb-4">
+            <Input 
+              name="title" 
+              placeholder="Новый чат" 
+              autoComplete="off" 
+              className="bg-slate-50 border-slate-200 focus-visible:ring-blue-600"
+            />
+            <Button 
+              type="submit" 
+              disabled={fetcher.state === "submitting"} 
+              className="bg-blue-600 hover:bg-blue-700 px-3 shrink-0"
+            >
+              <MessageSquarePlus size={18} />
+            </Button>
+          </fetcher.Form>
+          
+          {fetcher.data?.error && (
+            <p className="text-sm text-red-500 px-1 mb-2">{fetcher.data.error}</p>
           )}
 
-          <div className="space-y-2">
-            <textarea
-              className="min-h-[120px] w-full resize-none rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-              placeholder="Введите сообщение..."
-              disabled
-            />
-            <Button variant="outline" disabled className="w-full">
-              Отправка пока недоступна
-            </Button>
+          <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1">
+            {chats.length === 0 ? (
+              <p className="text-sm text-slate-400 px-2">Чатов пока нет.</p>
+            ) : (
+              chats.map((chat) => {
+                const isActive = chat.id === selectedChatId
+                return (
+                  <Link
+                    key={chat.id}
+                    to={`?chatId=${chat.id}`}
+                    className={[
+                      "flex flex-col gap-1 rounded-xl p-3 text-sm transition-colors border",
+                      isActive
+                        ? "border-blue-200 bg-blue-50 text-blue-700"
+                        : "border-transparent text-slate-600 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    <span className="font-medium truncate">{chat.title}</span>
+                    <span className="text-xs opacity-60">
+                      {new Date(chat.lastActivityTime).toLocaleDateString("ru-RU")}
+                    </span>
+                  </Link>
+                )
+              })
+            )}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        {/* Правая панель: Зона диалога */}
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm flex flex-col h-full p-4">
+          <div className="text-center mb-4 pb-4 border-b border-slate-100">
+            <h1 className="text-xl font-semibold text-slate-800">{selectedTitle}</h1>
+          </div>
+
+          <div className="flex-1 overflow-y-auto flex flex-col gap-4 mb-4 px-2">
+            {isLoading ? (
+              <div className="max-w-3xl mx-auto w-full flex flex-col gap-4">
+                <Skeleton className="h-16 w-3/4 rounded-2xl" />
+                <Skeleton className="h-20 w-full rounded-2xl" />
+              </div>
+            ) : selectedChat ? (
+              <div className="max-w-3xl mx-auto w-full flex flex-col gap-4">
+                {selectedChat.messages.length === 0 ? (
+                  <p className="text-center text-sm text-slate-400 my-10">Здесь пока пусто.</p>
+                ) : (
+                  selectedChat.messages.map((message) => (
+                    <div 
+                      key={message.id} 
+                      className="bg-slate-50 border border-slate-100 shadow-sm rounded-2xl p-4 text-sm w-fit max-w-[80%]"
+                    >
+                      <p className="text-xs font-semibold text-blue-600 mb-1">
+                        {message.senderTypeId}
+                      </p>
+                      <p className="text-slate-700 leading-relaxed">{message.text}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-1 items-center justify-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
+                  <Bot size={32} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="max-w-3xl mx-auto w-full">
+            <div className="flex items-center justify-between p-3 pl-6 bg-white border-2 border-blue-600 rounded-2xl shadow-[0_4px_15px_rgba(1,87,255,0.15)]">
+              <input 
+                type="text" 
+                placeholder="Спроси меня о чём угодно..." 
+                className="flex-1 outline-none text-base text-slate-700 bg-transparent placeholder:text-slate-400"
+                disabled={!selectedChat}
+              />
+              <div className="flex items-center gap-1">
+                <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded-full" disabled={!selectedChat}>
+                  <Paperclip size={20} />
+                </button>
+                <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded-full" disabled={!selectedChat}>
+                  <Mic size={20} />
+                </button>
+                <button 
+                  className="p-3 ml-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed"
+                  disabled={!selectedChat}
+                >
+                  <Send size={18} className="ml-0.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </AppLayout>
   )
 }
